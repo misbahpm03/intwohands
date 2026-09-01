@@ -1,0 +1,1003 @@
+/* ============================================================================
+   IN TWO HANDS — paper & ink
+   Edit content.js, not this file, unless you actually want to change the look.
+   ==========================================================================*/
+
+:root {
+  --paper:       #F2EADC;  /* the sheet — warm laid writing paper         */
+  --paper-lift:  #F7F1E6;  /* the letter sheet, laid on top               */
+  --paper-shade: #E5D9C4;  /* folds, mounts, the shadowed side of a crease*/
+  --ink:         #2A3348;  /* iron-gall blue-black — handwriting & prose  */
+  --ink-soft:    #6B6151;  /* ink that browned — captions, secondary      */
+  --rose:        #A2637A;  /* dried-rose ink — underlines, the nib        */
+  --thread:      #C0AE93;  /* stitching, hairlines, paper corners         */
+
+  /* Latin face first, then a Bengali one. Caveat and Cedarville have no
+     Bengali glyphs, so Bengali text falls through to the next family by
+     itself — English keeps its hand, Bengali gets the closest match.
+     Google has no Bengali *handwriting* family, so these are its
+     calligraphic display faces: Galada for your hand, Alkatra for hers. */
+  --hand-a: "Caveat", "Galada", "Bradley Hand", cursive;                /* your hand */
+  --hand-b: "Cedarville Cursive", "Alkatra", "Snell Roundhand", cursive; /* her hand */
+  --prose:  "EB Garamond", "Tiro Bangla", "Iowan Old Style", Georgia, serif;
+  --type:   "Courier Prime", "Hind Siliguri", ui-monospace, "Courier New", monospace;
+
+  --gutter: clamp(1.25rem, 5vw, 4.5rem);
+  --margin-col: clamp(3.5rem, 8vw, 8rem);   /* where the thread runs */
+  --pad-section: clamp(6rem, 15vh, 12rem);
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--prose);
+  font-size: clamp(1.08rem, .5vw + .98rem, 1.22rem);
+  line-height: 1.8;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+:focus-visible { outline: 2px solid var(--rose); outline-offset: 5px; }
+
+/* --- the three written voices -------------------------------------------*/
+
+.hand-a {              /* yours — titles, the letter */
+  font-family: var(--hand-a);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.hand-b {              /* hers — margin notes, photo captions */
+  font-family: var(--hand-b);
+  font-size: 1.06rem;
+  line-height: 1.55;
+  color: var(--rose);
+  margin: 0;
+}
+
+.type {                /* typewritten — dates, labels, the counter */
+  font-family: var(--type);
+  font-size: .72rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ============================================================================
+   THE ENVELOPE — the arrival, and the keeping
+   Used twice: as the cover, and again at the end where it seals itself.
+   ==========================================================================*/
+
+.fold {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: var(--paper);
+}
+
+.cover {
+  display: grid;
+  gap: 2rem;
+  justify-items: center;
+  text-decoration: none;
+  color: inherit;
+  /* the story arrives over the network, so the envelope fades in once it has
+     her name on it rather than flashing up blank */
+  opacity: 0;
+  transition: opacity .55s var(--ease);
+}
+
+.cover.is-ready { opacity: 1; }
+
+.cover__hint { color: var(--ink-soft); font-size: .64rem; }
+.cover:hover .cover__hint { color: var(--rose); }
+
+.envelope {
+  position: relative;
+  width: min(30rem, 86vw);
+  aspect-ratio: 1.62 / 1;
+  perspective: 1500px;
+  transform-style: preserve-3d;
+  transition: transform .5s var(--ease);
+}
+
+.cover:hover .envelope { transform: translateY(-4px); }
+
+/* the letter waiting inside */
+.envelope__letter {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 7%;
+  height: 84%;
+  z-index: 1;
+  background: linear-gradient(172deg, var(--paper-lift), var(--paper) 70%, var(--paper-shade));
+  box-shadow: 0 .5rem 1.2rem -.7rem rgba(42, 51, 72, .4);
+}
+
+/* the front panel, addressed */
+.envelope__front {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: .35rem;
+  padding: clamp(1.4rem, 5vw, 2.6rem);
+  overflow: hidden;
+  background: linear-gradient(163deg, var(--paper) 0%, var(--paper-shade) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .65),
+    0 2rem 4rem -2rem rgba(42, 51, 72, .45);
+}
+
+/* the seams of the back folds, showing through the paper */
+.envelope__front::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(42, 51, 72, .06) 50%, transparent calc(50% + 1px)),
+    linear-gradient(to bottom left,  transparent calc(50% - 1px), rgba(42, 51, 72, .06) 50%, transparent calc(50% + 1px));
+}
+
+.envelope__to    { font-size: .58rem; color: var(--ink-soft); }
+.envelope__name  { font-size: clamp(1.9rem, 6vw, 3.1rem); line-height: 1.1; }
+.envelope__lines { display: grid; gap: .1rem; color: var(--ink-soft); font-size: .58rem; }
+
+/* the flap, hinged along the top */
+.envelope__flap {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 54%;
+  z-index: 3;
+  transform-origin: top center;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(180deg, var(--paper-shade), var(--paper) 75%);
+  filter: drop-shadow(0 .35rem .5rem rgba(42, 51, 72, .22));
+  backface-visibility: hidden;
+}
+
+/* --- the postmark --------------------------------------------------------*/
+
+.postmark {
+  position: absolute;
+  top: 7%;
+  right: 6%;
+  z-index: 4;
+  width: clamp(4rem, 12vw, 5.4rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-content: center;
+  gap: .1rem;
+  text-align: center;
+  color: var(--rose);
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  rotate: -13deg;
+  opacity: .7;
+}
+
+.postmark::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: .55;
+}
+
+.postmark__place { font-size: .44rem; letter-spacing: .2em; color: inherit; }
+.postmark__date  { font-size: .7rem; font-weight: 700; letter-spacing: .05em; color: inherit; }
+
+/* the cancellation bars trailing off it */
+.postmark__bars {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  translate: 0 -50%;
+  margin-right: .3rem;
+  width: 4.5rem;
+  height: 1.5rem;
+  background: repeating-linear-gradient(to bottom, currentColor 0 2px, transparent 2px 7px);
+  opacity: .5;
+  -webkit-mask-image: linear-gradient(to left, #000, transparent);
+          mask-image: linear-gradient(to left, #000, transparent);
+}
+
+/* ============================================================================
+   THE PAGE
+   ==========================================================================*/
+
+/* `is-covered` is added by app.js on the <html> element. If JS never runs the
+   class is never added, the page stays visible, and nothing is trapped. */
+.is-covered .page { opacity: 0; }
+.page.is-open { opacity: 1; }
+
+/* The no-JS escape: the cover links to #page, and :target dismisses it. */
+body:has(#page:target) .fold { display: none; }
+
+.opening, .letter, .closing { padding-inline: var(--gutter); }
+.opening, .letter, .closing { padding-block: var(--pad-section); }
+
+/* a fold crease between sections, as if the sheet had been folded in three */
+.letter, .closing {
+  border-top: 1px solid rgba(42, 51, 72, .09);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, .75);
+}
+
+/* --- opening -------------------------------------------------------------*/
+
+.opening {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.75rem;
+  text-align: center;
+  max-width: 60rem;
+  margin-inline: auto;
+}
+
+.opening__names {
+  font-size: 1.4rem;
+  color: var(--ink-soft);
+  letter-spacing: .02em;
+}
+
+.opening__line {
+  font-size: clamp(2.6rem, 8vw, 5.4rem);
+  white-space: pre-line;
+  max-width: 16ch;
+}
+
+.count {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding-bottom: .9rem;
+  font-size: .8rem;
+}
+
+.count__n {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.count__rule {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 108%;
+  height: .7rem;
+  transform: translateX(-50%);
+  color: var(--rose);
+  overflow: visible;
+}
+
+.opening__caption { color: var(--ink-soft); }
+
+.cue {
+  margin-top: 2rem;
+  font-size: .62rem;
+  color: rgba(107, 97, 81, .55);
+  animation: cue 3.6s var(--ease) infinite;
+}
+
+@keyframes cue {
+  0%, 100% { opacity: .3; transform: translateY(0); }
+  50%      { opacity: .9; transform: translateY(6px); }
+}
+
+/* ============================================================================
+   CHAPTERS — knotted onto the thread
+   ==========================================================================*/
+
+.chapters {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--margin-col) minmax(0, 1fr);
+  column-gap: clamp(1.25rem, 3vw, 3rem);
+  max-width: 68rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  padding-block: var(--pad-section) 0;
+}
+
+/* the stitched line down the margin */
+.thread {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--gutter) + var(--margin-col));
+  transform: translateX(-50%);
+  width: 1.25rem;
+  height: 100%;
+  color: var(--thread);
+  overflow: visible;
+}
+
+.thread__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* the knot: date + a stitched bead, pinned to the thread */
+.knot {
+  position: relative;
+  align-self: start;
+  padding-top: .45rem;
+  text-align: right;
+  padding-right: 1.4rem;
+}
+
+.knot__date { display: block; font-size: .66rem; color: var(--ink-soft); }
+
+.knot::after {
+  content: "";
+  position: absolute;
+  right: -.275rem;          /* half the bead, so its centre lands on the thread */
+  top: .72rem;
+  width: .55rem;
+  height: .55rem;
+  border-radius: 50%;
+  background: var(--rose);
+  box-shadow: 0 0 0 4px var(--paper);
+}
+
+.chapter {
+  padding-bottom: var(--pad-section);
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.chapter__title { font-size: clamp(2rem, 4.4vw, 3rem); }
+
+.chapter__body p { margin: 0 0 1.2em; max-width: 36ch; }
+.chapter__body p:last-child { margin-bottom: 0; }
+
+/* her note in the margin, at an angle */
+.chapter__note {
+  justify-self: start;
+  max-width: 22ch;
+  padding-left: 1.6rem;
+  border-left: 1px solid var(--thread);
+  rotate: -1.6deg;
+}
+
+/* --- photographs, held by paper corners ----------------------------------
+   A print is a figure holding a flippable card (front = the photograph,
+   back = what's written on the reverse) plus a caption underneath that
+   stays put. The paper look lives on the faces so the back looks like paper
+   too; the tilt lives on .photo so the flip can't fight it.
+   -------------------------------------------------------------------------*/
+
+.chapter__photos {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  justify-items: start;
+  padding-block: .5rem;
+}
+
+/* prints laid on a page, stepped — not a gallery grid */
+.chapter__photos[data-count="2"],
+.chapter__photos[data-count="3"],
+.chapter__photos[data-count="4"] { grid-template-columns: 1fr 1fr; }
+
+.chapter__photos[data-count="2"] .photo:nth-child(2) { margin-top: clamp(1rem, 3vw, 2.5rem); }
+
+.chapter__photos[data-count="3"] .photo:nth-child(1) { grid-column: 1 / -1; width: min(100%, 34rem); }
+.chapter__photos[data-count="3"] .photo:nth-child(3) { margin-top: clamp(1rem, 3vw, 2.5rem); }
+
+.chapter__photos[data-count="4"] .photo:nth-child(2n) { margin-top: clamp(1.25rem, 3.5vw, 3rem); }
+
+.photo {
+  position: relative;
+  margin: 0;
+  width: min(100%, 30rem);
+  rotate: var(--tilt, 0deg);
+  perspective: 1400px;
+  container-type: inline-size;   /* the back sizes to the print, not the page */
+}
+
+/* the card that turns over */
+.photo__flip {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform .75s var(--ease);
+}
+
+.photo__flip.is-flipped { transform: rotateY(180deg); }
+
+.photo--flippable .photo__flip { cursor: pointer; }
+
+.photo__face {
+  padding: .7rem .7rem 1.1rem;
+  background: linear-gradient(168deg, var(--paper-lift), var(--paper) 60%, var(--paper-shade));
+  box-shadow: 0 1.25rem 2.5rem -1.25rem rgba(42, 51, 72, .35);
+  backface-visibility: hidden;
+}
+
+.photo__face--front { position: relative; }
+
+.photo__face--back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.75rem;
+  text-align: center;
+}
+
+.photo__back-text {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  max-width: 24ch;
+  color: var(--ink);
+}
+
+/* the hint, only on prints that actually have something on the back */
+.photo__turn {
+  font-size: .55rem;
+  color: rgba(107, 97, 81, .6);
+  opacity: 0;
+  transition: opacity .35s var(--ease);
+}
+
+.photo--flippable:hover .photo__turn,
+.photo__flip:focus-visible .photo__turn { opacity: 1; }
+
+.photo__face--front .photo__turn {
+  position: absolute;
+  right: .9rem;
+  bottom: .35rem;
+}
+
+/* A print in the shoebox is a fraction of the width of one in a chapter, so
+   the writing on its back is sized against the card rather than the screen. */
+@container (max-width: 15rem) {
+  .photo__face--back { padding: .85rem; gap: .5rem; }
+  .photo__back-text { font-size: .82rem; line-height: 1.4; max-width: none; }
+  .photo__turn { font-size: .5rem; letter-spacing: .1em; }
+}
+
+/* Nothing hovers on a touch screen, so the affordance has to be visible. */
+@media (hover: none) {
+  .photo--flippable .photo__turn { opacity: .7; }
+}
+
+.photo__img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+
+/* a photo whose file isn't in images/ yet */
+.photo__mount {
+  display: none;
+  place-content: center;
+  gap: .35rem;
+  text-align: center;
+  aspect-ratio: 4 / 3;
+  padding: 1.25rem;
+  font-size: .6rem;
+  color: rgba(107, 97, 81, .7);
+  white-space: pre-line;
+  border: 1px dashed var(--thread);
+  background: rgba(197, 174, 147, .07);
+}
+
+.photo.is-empty .photo__img  { display: none; }
+.photo.is-empty .photo__mount { display: grid; }
+
+.photo__cap {
+  padding: .6rem .2rem 0;
+  text-align: center;
+}
+
+/* the corners that hold it to the page */
+.photo__corner {
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  z-index: 2;
+  background: linear-gradient(135deg, var(--paper-shade), var(--thread));
+  box-shadow: 0 1px 2px rgba(42, 51, 72, .2);
+}
+
+.photo__corner--tl { top: 0; left: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.photo__corner--br { bottom: 0; right: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+
+/* ============================================================================
+   THE SHOEBOX — the loose pile, fanning out
+   ==========================================================================*/
+
+.shoebox { position: relative; }
+
+.shoebox__stage {
+  height: 100svh;                /* pinned — must not exceed the viewport */
+  display: grid;
+  align-content: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
+  padding-inline: var(--gutter);
+  padding-block: clamp(3rem, 8vh, 6rem);
+  overflow: hidden;
+}
+
+.shoebox__head { display: grid; gap: .6rem; text-align: center; justify-items: center; }
+.shoebox__heading { font-size: clamp(1.9rem, 4.4vw, 3rem); }
+.shoebox__note { color: var(--ink-soft); }
+
+.shoebox__pile {
+  position: relative;
+  height: min(52vh, 28rem);
+}
+
+.shoebox__pile .photo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(8.5rem, 14vw, 13rem);
+  margin: 0;
+  rotate: 0deg;                 /* GSAP owns the angle in here */
+}
+
+.shoebox__pile .photo__cap { font-size: .92rem; }
+.shoebox__pile .photo__back-text { font-size: .95rem; }
+
+/* ============================================================================
+   THE CORNER OF THE LAST PAGE
+   ==========================================================================*/
+
+.curl {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.curl__under {
+  position: absolute;
+  right: .8rem;
+  bottom: .55rem;
+  font-size: .58rem;
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity .45s var(--ease);
+}
+
+.curl__leaf {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 5rem;
+  height: 5rem;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: linear-gradient(315deg, var(--paper-lift) 42%, var(--paper-shade) 62%, var(--thread));
+  box-shadow: -.4rem -.4rem 1rem -.25rem rgba(42, 51, 72, .28);
+  transform-origin: 100% 100%;
+  transform: scale(.4);
+  transition: transform .5s var(--ease);
+}
+
+.curl:hover .curl__leaf { transform: scale(1); }
+.curl:hover .curl__under { opacity: 1; }
+
+/* ============================================================================
+   THE LETTER — the signature moment
+   ==========================================================================*/
+
+.letter {
+  display: grid;
+  justify-items: center;
+  gap: 2rem;
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+.letter__eyebrow { color: var(--rose); }
+
+.sheet {
+  position: relative;
+  width: min(100%, 44rem);
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.75rem, 5vw, 4rem) clamp(4rem, 8vw, 6rem);
+  background: linear-gradient(172deg, var(--paper-lift), var(--paper) 70%, var(--paper-shade));
+  box-shadow: 0 2rem 4.5rem -2rem rgba(42, 51, 72, .3);
+  rotate: -.35deg;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.letter__salutation { font-size: clamp(1.7rem, 3.4vw, 2.3rem); }
+
+.letter__body {
+  font-size: clamp(1.35rem, 2.1vw, 1.72rem);
+  line-height: 1.95;
+  display: grid;
+  gap: 1.1em;
+}
+
+.letter__body p { margin: 0; }
+
+/* one word of ink */
+.w { display: inline-block; }
+
+.letter__signoff  { font-size: 1.3rem; color: var(--ink-soft); margin-top: .75rem; }
+.letter__signature { font-size: clamp(2.1rem, 4.5vw, 2.9rem); margin-top: -.6rem; }
+
+.flourish {
+  width: clamp(11rem, 26vw, 15rem);
+  height: auto;
+  margin-top: -.75rem;
+  color: var(--rose);
+  overflow: visible;
+}
+
+/* the pen nib, travelling just ahead of the last word */
+.nib {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 15px;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 40% 40% 60% 60%;
+  background: linear-gradient(to bottom, var(--ink), var(--rose));
+  rotate: -32deg;
+  filter: drop-shadow(0 0 4px rgba(162, 99, 122, .55));
+}
+
+/* ============================================================================
+   CLOSING
+   ==========================================================================*/
+
+.closing {
+  position: relative;
+  min-height: 80svh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.closing__line { font-size: clamp(2.2rem, 6.5vw, 4.2rem); white-space: pre-line; }
+.closing__note { color: var(--rose); letter-spacing: .26em; }
+
+.countdown {
+  border: 1px solid var(--thread);
+  padding: .55rem 1.1rem;
+  font-size: .66rem;
+  color: var(--ink-soft);
+}
+
+/* ============================================================================
+   CHROME — the music tab
+   ==========================================================================*/
+
+.tab {
+  position: fixed;
+  right: 0;
+  top: 42%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem .9rem;
+  background: linear-gradient(180deg, var(--paper-lift), var(--paper-shade));
+  border: 1px solid var(--thread);
+  border-right: 0;
+  box-shadow: -.5rem .5rem 1.5rem -.75rem rgba(42, 51, 72, .35);
+  transition: transform .35s var(--ease);
+}
+
+.tab:hover { transform: translateX(-4px); }
+
+.tab__dot {
+  width: .5rem;
+  height: .5rem;
+  border-radius: 50%;
+  background: var(--thread);
+  transition: background .3s var(--ease);
+}
+
+.tab[aria-pressed="true"] .tab__dot {
+  background: var(--rose);
+  animation: pulse 2.4s var(--ease) infinite;
+}
+
+.tab__label { font-size: .6rem; color: var(--ink-soft); }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(162, 99, 122, .5); }
+  50%      { box-shadow: 0 0 0 .35rem rgba(162, 99, 122, 0); }
+}
+
+/* ============================================================================
+   HER TURN — the reply
+   ==========================================================================*/
+
+.reply {
+  padding-inline: var(--gutter);
+  padding-block: var(--pad-section);
+  max-width: 46rem;
+  margin-inline: auto;
+  display: grid;
+  gap: 1.35rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.reply__prompt { font-size: clamp(1.5rem, 4.2vw, 2.2rem); }
+
+.reply__paper {
+  position: relative;
+  width: 100%;
+  padding: 1.4rem 1.5rem 1.1rem;
+  rotate: .4deg;
+  background: linear-gradient(172deg, var(--paper-lift), var(--paper) 75%, var(--paper-shade));
+  box-shadow: 0 1.5rem 3.5rem -2rem rgba(42, 51, 72, .3);
+}
+
+/* label kept for screen readers, not shown */
+.reply__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.reply__field {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  resize: vertical;
+  color: var(--ink);
+  font-family: var(--hand-b);
+  font-size: 1.25rem;
+  line-height: 2.1;
+  min-height: 6.3em;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(2.1em - 1px),
+    rgba(192, 174, 147, .5) calc(2.1em - 1px) 2.1em);
+  background-attachment: local;
+}
+
+.reply__field::placeholder { color: rgba(107, 97, 81, .45); }
+.reply__field:focus { outline: none; }
+.reply__paper:focus-within { box-shadow: 0 1.5rem 3.5rem -2rem rgba(42, 51, 72, .4); }
+
+.reply__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.reply__btn {
+  border: 1px solid var(--thread);
+  padding: .6rem 1.1rem;
+  background: var(--paper-lift);
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: border-color .3s var(--ease), color .3s var(--ease);
+}
+
+.reply__btn:hover { border-color: var(--rose); color: var(--rose); }
+
+/* the send button is the primary action */
+.reply__btn--send { border-color: var(--rose); color: var(--rose); }
+
+.reply__btn:disabled {
+  opacity: .4;
+  cursor: default;
+  border-color: var(--thread);
+  color: var(--ink-soft);
+}
+
+.reply__saved {
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity .4s var(--ease);
+}
+
+.reply__saved.is-shown { opacity: .75; }
+
+/* ============================================================================
+   THE KEEPING — the letter folds away and the thread ties
+   ==========================================================================*/
+
+.keep {
+  position: relative;
+  width: min(24rem, 78vw);
+  margin-inline: auto;
+  padding-top: 7rem;
+  perspective: 1300px;
+}
+
+.keep__sheet {
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 9rem;
+  z-index: 3;
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  transform-style: preserve-3d;
+  opacity: 0;
+}
+
+.keep__third {
+  /* no backface-visibility here: a folded third turns past 90deg and its
+     reverse is still paper, so it has to keep showing */
+  background: linear-gradient(172deg, var(--paper-lift), var(--paper));
+  box-shadow: 0 .4rem 1rem -.7rem rgba(42, 51, 72, .45);
+}
+
+.keep__third--top    { transform-origin: bottom center; }
+.keep__third--bottom { transform-origin: top center; }
+
+.envelope--small { width: 100%; }
+
+.bow {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  z-index: 6;
+  width: clamp(5rem, 22%, 7rem);
+  height: auto;
+  translate: -50% 0;
+  color: var(--thread);
+  overflow: visible;
+}
+
+.closing__sealed { color: var(--ink-soft); }
+
+@media (max-width: 560px) {
+  .keep { padding-top: 5.5rem; }
+  .keep__sheet { height: 7rem; }
+  .reply__field { font-size: 1.15rem; }
+}
+
+/* ============================================================================
+   PAPER TEXTURE — fibre, foxing, the shadow at the edge of the sheet
+   ==========================================================================*/
+
+.grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 80;
+  pointer-events: none;
+  opacity: .38;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/></filter><rect width='320' height='320' filter='url(%23f)' opacity='0.32'/></svg>");
+}
+
+.foxing {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  box-shadow: inset 0 0 9rem rgba(107, 97, 81, .16);
+  background:
+    radial-gradient(7rem 5rem at 12% 22%, rgba(150, 118, 80, .05), transparent 70%),
+    radial-gradient(5rem 6rem at 88% 44%, rgba(150, 118, 80, .045), transparent 70%),
+    radial-gradient(9rem 6rem at 30% 78%, rgba(150, 118, 80, .04), transparent 70%),
+    radial-gradient(6rem 5rem at 72% 92%, rgba(150, 118, 80, .05), transparent 70%);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+   ==========================================================================*/
+
+@media (max-width: 899px) {
+  .chapters { grid-template-columns: minmax(0, 1fr); }
+  .thread { display: none; }
+
+  .knot {
+    text-align: left;
+    padding: 0 0 .75rem;
+  }
+  .knot::after { right: auto; left: 0; top: auto; bottom: 0; }
+  .knot__date { padding-left: 1.1rem; }
+
+  .chapter__photos[data-count="2"],
+  .chapter__photos[data-count="3"],
+  .chapter__photos[data-count="4"] { grid-template-columns: 1fr; }
+  .chapter__photos .photo { margin-top: 0 !important; width: 100%; }
+  .chapter__photos[data-count="3"] .photo:nth-child(1) { width: 100%; }
+
+  /* the fan needs width to read — on a phone it's simply a pile in a grid */
+  .shoebox__pile {
+    position: static;
+    height: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(1.25rem, 5vw, 2rem);
+  }
+  .shoebox__pile .photo {
+    position: static;
+    width: auto;
+    rotate: var(--tilt, 0deg);   /* the fan is gone; the tilt shouldn't be */
+  }
+
+  .shoebox__stage {
+    height: auto;
+    padding-block: var(--pad-section);
+    overflow: visible;
+  }
+
+  .curl { display: none; }
+  .chapter__note { transform: none; }
+  .tab { top: auto; bottom: var(--gutter); }
+}
+
+/* ============================================================================
+   BENGALI
+   Bengali is a connected script. The letter-spacing and uppercasing that suit
+   the typewritten Latin labels pull its conjuncts apart, so any element that
+   actually contains Bengali opts out. The class is applied in app.js.
+   Must stay AFTER .type, or it loses the specificity tie.
+   ==========================================================================*/
+
+.has-bengali {
+  letter-spacing: normal;
+  text-transform: none;
+  word-spacing: normal;
+}
+
+/* ============================================================================
+   REDUCED MOTION — everything written, nothing moving
+   ==========================================================================*/
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .cue, .grain, .tab__dot { animation: none; }
+  .w { opacity: 1 !important; filter: none !important; }
+  .nib { display: none; }
+  *, *::before, *::after { transition-duration: .01ms !important; }
+}
+
+/* ============================================================================
+   SMALL PHONES — two columns of prints is too tight below this
+   ==========================================================================*/
+
+@media (max-width: 560px) {
+  .shoebox__pile { grid-template-columns: 1fr; }
+  .shoebox__pile .photo { width: min(100%, 20rem); justify-self: center; }
+  .letter__body { font-size: 1.3rem; line-height: 1.85; }
+  .sheet { padding-inline: 1.35rem; }
+}

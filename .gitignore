@@ -1,0 +1,14 @@
+node_modules
+.vercel
+.DS_Store
+
+# Real secrets never get committed...
+.env
+.env.*
+# ...but the template documenting them must be.
+!.env.example
+
+# Local agent tooling, not part of the project
+.agents
+.claude
+skills-lock.json

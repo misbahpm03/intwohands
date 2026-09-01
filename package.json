@@ -1,0 +1,12 @@
+{
+  "name": "in-two-hands",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node api/_auth.test.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.0"
+  }
+}

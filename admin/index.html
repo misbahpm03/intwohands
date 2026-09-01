@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In Two Hands — editor</title>
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=EB+Garamond:wght@400..600&family=Courier+Prime:wght@400;700&family=Galada&family=Tiro+Bangla&family=Hind+Siliguri:wght@300;400;600&display=swap">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <form class="gate__form" id="gateForm">
+    <h1 class="gate__title">In Two Hands</h1>
+    <p class="gate__note">the editor</p>
+    <label class="field">
+      <span class="field__label">password</span>
+      <input class="field__input" type="password" id="password"
+             autocomplete="current-password" required>
+    </label>
+    <button class="btn btn--primary" type="submit" id="gateBtn">let me in</button>
+    <p class="gate__error" id="gateError" role="alert"></p>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
+  <header class="bar">
+    <span class="bar__title">the letter</span>
+    <span class="bar__status" id="status"></span>
+    <a class="btn" href="/" target="_blank" rel="noopener">preview</a>
+    <button class="btn" id="signOut" type="button">sign out</button>
+    <button class="btn btn--primary" id="save" type="button">save</button>
+  </header>
+  <main class="sheet" id="editor"></main>
+</div>
+
+<!-- the starting content, and the fallback if nothing is saved yet -->
+<script src="../content.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

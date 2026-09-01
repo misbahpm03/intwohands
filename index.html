@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In Two Hands</title>
+<meta name="description" content="A letter, written in two hands.">
+<meta name="theme-color" content="#F2EADC">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Cedarville+Cursive&family=EB+Garamond:ital,wght@0,400..600;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Galada&family=Alkatra:wght@400..700&family=Tiro+Bangla:ital@0;1&family=Hind+Siliguri:wght@300;400;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ═══ THE ARRIVAL ════════════════════════════════════════════════════
+     The cover is a real link to #page. With JavaScript it animates open;
+     with JavaScript broken or disabled it still dismisses, via :target in
+     styles.css. There is no way to get stuck behind it.
+     ================================================================== -->
+<div class="fold" id="fold">
+  <a class="cover" id="foldBtn" href="#page">
+    <div class="envelope" id="coverEnvelope"></div>
+    <span class="cover__hint type" id="foldHint"></span>
+  </a>
+</div>
+
+<!-- ═══ THE PAGE ════════════════════════════════════════════════════════ -->
+<main class="page" id="page">
+
+  <!-- OPENING -->
+  <section class="opening" id="opening">
+    <p class="opening__names hand-a" id="openNames"></p>
+    <h1 class="opening__line hand-a" id="openLine"></h1>
+
+    <p class="count type">
+      <span class="count__n" id="countDays">—</span>
+      <span class="count__u">days, and counting</span>
+      <svg class="count__rule" viewBox="0 0 240 12" fill="none" aria-hidden="true">
+        <path id="countRule" d="M3 8C52 2 96 10 132 6S196 1 237 5"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </p>
+
+    <p class="opening__caption type" id="openCaption"></p>
+    <p class="cue type" aria-hidden="true">scroll</p>
+  </section>
+
+  <!-- CHAPTERS, knotted onto the thread -->
+  <div class="chapters" id="chapters">
+    <svg class="thread" viewBox="0 0 20 1000" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <clipPath id="stitchClip">
+          <rect id="stitchRect" x="0" y="0" width="20" height="0"></rect>
+        </clipPath>
+      </defs>
+      <path class="thread__line" clip-path="url(#stitchClip)"
+            d="M10 0C4 118 16 236 10 354S4 590 10 708S16 944 10 1000"/>
+    </svg>
+    <!-- chapter sections are built by app.js -->
+  </div>
+
+  <!-- THE SHOEBOX — the loose pile, fanning out -->
+  <section class="shoebox" id="shoebox" aria-labelledby="shoeboxHeading">
+    <div class="shoebox__stage" id="shoeboxStage">
+      <div class="shoebox__head">
+        <h2 class="shoebox__heading hand-a" id="shoeboxHeading"></h2>
+        <p class="shoebox__note type" id="shoeboxNote"></p>
+      </div>
+      <div class="shoebox__pile" id="shoeboxPile"></div>
+    </div>
+  </section>
+
+  <!-- THE LETTER -->
+  <section class="letter" id="letter" aria-labelledby="letterHeading">
+    <p class="letter__eyebrow type" id="letterHeading"></p>
+
+    <article class="sheet" id="letterSheet">
+      <p class="letter__salutation hand-a" id="letterSalutation"></p>
+      <div class="letter__body hand-a" id="letterBody"></div>
+      <p class="letter__signoff hand-a" id="letterSignoff"></p>
+      <p class="letter__signature hand-a" id="letterSignature"></p>
+
+      <svg class="flourish" viewBox="0 0 260 56" fill="none" aria-hidden="true">
+        <path id="flourishPath" d="M6 38C40 12 78 8 108 22S168 50 198 33c16-9 34-20 52-16"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+
+      <span class="nib" id="nib" aria-hidden="true"></span>
+    </article>
+  </section>
+
+  <!-- HER TURN -->
+  <section class="reply" id="reply">
+    <p class="reply__prompt hand-b" id="replyPrompt"></p>
+
+    <div class="reply__paper">
+      <label class="reply__label" for="replyField" id="replyLabel"></label>
+      <textarea class="reply__field hand-b" id="replyField" rows="3"
+                spellcheck="false"></textarea>
+    </div>
+
+    <div class="reply__actions">
+      <button class="reply__btn reply__btn--send type" id="replySend" type="button"></button>
+      <button class="reply__btn type" id="replyCopy" type="button" hidden></button>
+      <span class="reply__saved type" id="replySaved" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section class="closing" id="closing">
+    <!-- the letter folds itself away and the thread ties -->
+    <div class="keep" id="keep">
+      <div class="keep__sheet" aria-hidden="true">
+        <span class="keep__third keep__third--top"></span>
+        <span class="keep__third keep__third--mid"></span>
+        <span class="keep__third keep__third--bottom"></span>
+      </div>
+      <div class="envelope envelope--small" id="closeEnvelope"></div>
+      <svg class="bow" viewBox="0 0 160 62" fill="none" aria-hidden="true">
+        <path id="bowPath"
+              d="M80 28C62 6 34 10 40 28c6 18 30 12 40 0 10-12 34-18 40 0 6 18-22 24-40 0M80 28 58 58M80 28l24 30"
+              stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <p class="closing__sealed type" id="closeSealed"></p>
+    <h2 class="closing__line hand-a" id="closeLine"></h2>
+    <p class="closing__note type" id="closeNote"></p>
+    <p class="countdown type" id="countdown"></p>
+
+    <!-- the corner of the last page, lifting -->
+    <div class="curl" aria-hidden="true">
+      <span class="curl__under type">the end</span>
+      <span class="curl__leaf"></span>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══ CHROME & TEXTURE ════════════════════════════════════════════════ -->
+<button class="tab" id="musicBtn" type="button" hidden aria-pressed="false">
+  <span class="tab__dot" aria-hidden="true"></span>
+  <span class="tab__label type" id="musicLabel"></span>
+</button>
+<audio id="audio" loop preload="none"></audio>
+
+<div class="foxing" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
