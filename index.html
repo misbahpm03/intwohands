@@ -146,6 +146,35 @@
 </button>
 <audio id="audio" loop preload="none"></audio>
 
+<!-- ═══ THE VIEWER ══════════════════════════════════════════════════════
+     One dialog, reused by every print. A native <dialog> so Esc, focus
+     trapping, the page going inert behind it and the top layer are the
+     browser's job rather than ours. Filled in by app.js.
+     ================================================================== -->
+<dialog class="viewer" id="viewer" aria-labelledby="viewerCap">
+  <div class="viewer__inner">
+    <button class="viewer__close type" id="viewerClose" type="button">close</button>
+
+    <div class="photo viewer__photo" id="viewerPhoto">
+      <div class="photo__flip" id="viewerFlip">
+        <div class="photo__face photo__face--front">
+          <span class="photo__corner photo__corner--tl"></span>
+          <span class="photo__corner photo__corner--br"></span>
+          <img class="photo__img" id="viewerImg" alt="">
+          <span class="photo__mount type" id="viewerMount"></span>
+        </div>
+        <div class="photo__face photo__face--back" id="viewerBack">
+          <p class="photo__back-text hand-b" id="viewerBackText"></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="viewer__cap hand-b" id="viewerCap"></p>
+    <button class="viewer__turn type" id="viewerTurn" type="button" aria-pressed="false"></button>
+  </div>
+</dialog>
+
+<div class="airmail" aria-hidden="true"></div>
 <div class="foxing" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 

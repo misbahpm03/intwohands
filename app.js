@@ -104,6 +104,26 @@ function selftest() {
   ok(sendDisabled({ sending: true, value: "hi", lastSent: null }), "no second send while one is in flight");
   ok(sendDisabled({ sending: false, value: "hi", lastSent: "hi" }), "the same words can't be sent twice");
   ok(!sendDisabled({ sending: false, value: "hi again", lastSent: "hi" }), "an edited reply can be sent again");
+
+  /* prints: every one opens, only some turn over */
+  const withBack = buildPhoto({ src: "a.jpg", caption: "one", back: "written here" }, 0);
+  const noBack   = buildPhoto({ src: "b.jpg", caption: "two" }, 1);
+
+  ok(withBack.classList.contains("photo--flippable"), "a print with writing on the back is flippable");
+  ok(!noBack.classList.contains("photo--flippable"), "a print with nothing on the back is not");
+
+  for (const [fig, what] of [[withBack, "with a back"], [noBack, "without a back"]]) {
+    const flip = fig.querySelector(".photo__flip");
+    ok(flip.getAttribute("role") === "button", `a print ${what} is a button`);
+    ok(flip.tabIndex === 0, `a print ${what} is reachable by keyboard`);
+    ok(Boolean(fig._photo), `a print ${what} carries its content for the viewer`);
+  }
+
+  ok(withBack.querySelector(".photo__face--back"), "the back face is built when there is one");
+  ok(!noBack.querySelector(".photo__face--back"), "and not when there isn't");
+
+  ok(tiltFor(3) === tiltFor(3) && tiltFor(3) !== tiltFor(4), "the tilt is per-index and stable");
+
   console.log("%cselftest passed", "color:#A2637A");
 }
 
@@ -147,24 +167,30 @@ function buildPhoto(photo, index) {
   front.append(el("span", "photo__mount type", `photograph\n${photo.src || "no file set"}`));
   flip.append(front);
 
-  /* only prints with something written on the reverse can be turned over */
+  /* Only prints with something written on the reverse can be turned over —
+     but EVERY print opens, so every print is a control. It used to be that
+     half of them had no role and no tabindex at all, which left them
+     unreachable by keyboard and looking inert. */
   if (photo.back) {
     fig.classList.add("photo--flippable");
-    front.append(el("span", "photo__turn type", "turn over"));
+    front.append(el("span", "photo__turn type", "there's writing on the back"));
 
     const back = el("div", "photo__face photo__face--back");
     back.append(el("p", "photo__back-text hand-b", photo.back));
-    back.append(el("span", "photo__turn type", "turn back"));
     flip.append(back);
-
-    flip.setAttribute("role", "button");
-    flip.setAttribute("aria-pressed", "false");
-    flip.setAttribute("aria-label", `Turn over: ${photo.caption || photo.alt || "photograph"}`);
-    flip.tabIndex = 0;
   }
+
+  const named = photo.caption || photo.alt || "photograph";
+  flip.setAttribute("role", "button");
+  flip.setAttribute("aria-label",
+    photo.back ? `Open ${named}, and what's written on the back` : `Open ${named}`);
+  flip.tabIndex = 0;
 
   fig.append(flip);
   if (photo.caption) fig.append(el("figcaption", "photo__cap hand-b", photo.caption));
+
+  /* the viewer reads this rather than scraping it back out of the DOM */
+  fig._photo = photo;
 
   if (photo.src) img.src = photo.src;
   else fig.classList.add("is-empty");
@@ -173,27 +199,96 @@ function buildPhoto(photo, index) {
 }
 
 /**
- * Turning a print over is an interaction, not an animation — it is wired up
- * with the rest of the content so it still works if GSAP never loads.
- * One delegated listener covers every print, including the shoebox.
+ * Opening a print, and turning it over.
+ *
+ * The turn used to happen on the page, where the back of a shoebox print is a
+ * couple of inches wide and sitting at an angle — the handwriting was there
+ * but you could not comfortably read it. So the click opens a viewer instead,
+ * and the turn happens in there at a size that earns it.
+ *
+ * This is an interaction, not an animation: it is wired up with the content,
+ * outside the GSAP guard, so it still works if the CDN never answers.
  */
-function setupFlips() {
-  const turn = (flip) => {
-    const showing = flip.classList.toggle("is-flipped");
-    flip.setAttribute("aria-pressed", String(showing));
+function setupViewer() {
+  const dlg = $("#viewer");
+  if (!dlg) return;
+
+  const flip = $("#viewerFlip");
+  const img = $("#viewerImg");
+  const mount = $("#viewerMount");
+  const backText = $("#viewerBackText");
+  const cap = $("#viewerCap");
+  const turn = $("#viewerTurn");
+  const photoEl = $("#viewerPhoto");
+
+  let opener = null;                    /* where focus goes back to */
+
+  const face = (showing) => {
+    flip.classList.toggle("is-flipped", showing);
+    turn.setAttribute("aria-pressed", String(showing));
+    turn.textContent = showing ? "turn back" : "turn it over";
+    /* the face turned away is not readable, so don't let it be read out */
+    $(".photo__face--front", flip).setAttribute("aria-hidden", String(showing));
+    $("#viewerBack").setAttribute("aria-hidden", String(!showing));
   };
 
+  const open = (fig) => {
+    const photo = fig._photo;
+    if (!photo) return;
+
+    opener = $(".photo__flip", fig);
+
+    img.alt = photo.alt || "";
+    if (photo.src) {
+      img.src = photo.src;
+      photoEl.classList.remove("is-empty");
+    } else {
+      img.removeAttribute("src");
+      photoEl.classList.add("is-empty");
+    }
+    mount.textContent = `photograph\n${photo.src || "no file set"}`;
+
+    cap.textContent = photo.caption || photo.alt || "photograph";
+
+    const hasBack = Boolean(photo.back);
+    backText.textContent = photo.back || "";
+    turn.hidden = !hasBack;
+    photoEl.classList.toggle("photo--flippable", hasBack);
+
+    face(false);
+    dlg.showModal();
+  };
+
+  /* one delegated listener covers every print, chapters and shoebox alike */
   document.addEventListener("click", (e) => {
-    const flip = e.target.closest?.(".photo--flippable .photo__flip");
-    if (flip) turn(flip);
+    const hit = e.target.closest?.(".photo .photo__flip");
+    if (!hit || hit.closest(".viewer")) return;
+    open(hit.closest(".photo"));
   });
 
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
-    const flip = e.target.closest?.(".photo--flippable .photo__flip");
-    if (!flip) return;
+    const hit = e.target.closest?.(".photo .photo__flip");
+    if (!hit || hit.closest(".viewer")) return;
     e.preventDefault();
-    turn(flip);
+    open(hit.closest(".photo"));
+  });
+
+  /* inside the viewer, the print itself turns — as does the label under it */
+  turn.addEventListener("click", () => face(!flip.classList.contains("is-flipped")));
+  flip.addEventListener("click", () => {
+    if (!turn.hidden) face(!flip.classList.contains("is-flipped"));
+  });
+
+  $("#viewerClose").addEventListener("click", () => dlg.close());
+
+  /* clicking the backdrop — the dialog itself, outside its content */
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+
+  dlg.addEventListener("close", () => {
+    img.removeAttribute("src");         /* don't hold a big decode open */
+    opener?.focus();
+    opener = null;
   });
 }
 
@@ -506,73 +601,25 @@ function prepareStroke(path) {
   return len;
 }
 
-/** Stable pseudo-random in 0..1 from an integer. Never Math.random() — the
-    pile has to look identical on every reload. */
-function hash01(n) {
-  const v = Math.sin(n * 12.9898) * 43758.5453;
-  return v - Math.floor(v);
-}
-
-/** Where print `i` of `n` ends up, as a percentage offset from the centre. */
-function scatterAt(i, n) {
-  const across = n > 1 ? i / (n - 1) : .5;          /* 0..1 left to right */
-  const jx = hash01(i + 1);
-  const jy = hash01(i + 7.3);
-  return {
-    x: (across - .5) * 84 + (jx - .5) * 14,         /* % of pile width  */
-    y: (jy - .5) * 58,                              /* % of pile height */
-    r: (jx - .5) * 46,                              /* degrees          */
-  };
-}
-
 /**
- * The loose pile: stacked at the centre, fanning out across the page as the
- * section is scrolled through. Pinned, which is safe here because the stage
- * is viewport-height by design — unlike the letter, nothing can be cropped.
+ * The pile arrives; it no longer fans out. The fan was a pinned, scrubbed
+ * scatter that ran at 900px and up — prints overlapping at up to 23 degrees,
+ * which meant a print you turned over could sit under its neighbour, and the
+ * whole thing read as scattered rather than laid out. The layout is one grid
+ * at every width now, so this is one behaviour at every width too.
+ *
+ * Each print gets its own trigger rather than one for the pile: with a dozen
+ * of them stacked down the page, a single trigger would fire the lot while
+ * most were still far below the fold.
  */
 function setupShoebox() {
   const pile = $("#shoeboxPile");
   if (!pile) return;                        /* no shoebox in content.js */
 
-  const prints = $$(".photo", pile);
-  if (!prints.length) return;
-
-  const n = prints.length;
-  const mm = gsap.matchMedia();
-
-  mm.add("(min-width: 900px)", () => {
-    gsap.set(prints, { xPercent: -50, yPercent: -50, zIndex: (i) => i });
-
-    gsap.fromTo(prints,
-      { x: 0, y: 0, rotation: (i) => (i % 2 ? 5 : -5), scale: .9 },
-      {
-        x: (i) => scatterAt(i, n).x * pile.clientWidth / 100,
-        y: (i) => scatterAt(i, n).y * pile.clientHeight / 100,
-        rotation: (i) => scatterAt(i, n).r,
-        scale: 1,
-        ease: "power2.out",
-        stagger: { each: .035, from: "center" },
-        scrollTrigger: {
-          trigger: "#shoebox",
-          start: "top top",
-          end: () => "+=" + Math.round(window.innerHeight * 1.25),
-          pin: true,
-          scrub: .7,
-          invalidateOnRefresh: true,
-        },
-      });
-  });
-
-  /* The fan needs width to read, so a phone gets the pile as a grid instead.
-     Each print has its own trigger rather than one for the whole pile — with
-     twelve of them stacked vertically, a single trigger would fire the lot
-     while most were still far below the fold. */
-  mm.add("(max-width: 899px)", () => {
-    prints.forEach((print) => {
-      gsap.from(print, {
-        y: 22, opacity: 0, duration: .6, ease: "power2.out",
-        scrollTrigger: { trigger: print, start: "top 92%", once: true },
-      });
+  $$(".photo", pile).forEach((print) => {
+    gsap.from(print, {
+      y: 22, opacity: 0, duration: .6, ease: "power2.out",
+      scrollTrigger: { trigger: print, start: "top 92%", once: true },
     });
   });
 }
@@ -807,7 +854,7 @@ loadContent().then((data) => {
      console line instead of a dead page. */
   try {
     render();
-    setupFlips();
+    setupViewer();
     setupReply();
     startCounters();
     setupMusic();

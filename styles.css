@@ -11,6 +11,19 @@
   --ink-soft:    #6B6151;  /* ink that browned — captions, secondary      */
   --rose:        #A2637A;  /* dried-rose ink — underlines, the nib        */
   --thread:      #C0AE93;  /* stitching, hairlines, paper corners         */
+  --post:        #B23A34;  /* postal red — the airmail edge, and only that */
+  --air:         #2E4C7E;  /* airmail blue — likewise                      */
+
+  /* The same edge the editor puts on every sheet, ghosted down until it is
+     texture rather than decoration: you notice it is airmail only when you
+     look straight at it. */
+  --airmail: repeating-linear-gradient(
+    -45deg,
+    var(--post)  0 7px,
+    var(--paper) 7px 14px,
+    var(--air)   14px 21px,
+    var(--paper) 21px 28px
+  );
 
   /* Latin face first, then a Bengali one. Caveat and Cedarville have no
      Bengali glyphs, so Bengali text falls through to the next family by
@@ -402,21 +415,20 @@ body:has(#page:target) .fold { display: none; }
 .chapter__photos {
   display: grid;
   gap: clamp(1.5rem, 4vw, 3rem);
-  justify-items: start;
+  align-items: start;
   padding-block: .5rem;
 }
 
-/* prints laid on a page, stepped — not a gallery grid */
+/* Two abreast where there is room. The prints used to be stepped — alternate
+   ones pushed down as much as 3rem, against a ragged right edge — which read
+   as untidy rather than hand-placed once there were more than a couple. The
+   per-print tilt does that job on its own. */
 .chapter__photos[data-count="2"],
 .chapter__photos[data-count="3"],
 .chapter__photos[data-count="4"] { grid-template-columns: 1fr 1fr; }
 
-.chapter__photos[data-count="2"] .photo:nth-child(2) { margin-top: clamp(1rem, 3vw, 2.5rem); }
-
+/* three prints: the first leads, full width — that one is the photograph */
 .chapter__photos[data-count="3"] .photo:nth-child(1) { grid-column: 1 / -1; width: min(100%, 34rem); }
-.chapter__photos[data-count="3"] .photo:nth-child(3) { margin-top: clamp(1rem, 3vw, 2.5rem); }
-
-.chapter__photos[data-count="4"] .photo:nth-child(2n) { margin-top: clamp(1.25rem, 3.5vw, 3rem); }
 
 .photo {
   position: relative;
@@ -473,6 +485,12 @@ body:has(#page:target) .fold { display: none; }
   transition: opacity .35s var(--ease);
 }
 
+/* This used to be opacity 0 until you hovered, with a separate rule pinning
+   it visible on touch — so a phone advertised the back and a desktop hid it,
+   which is why the prints read as inert on a big screen. Faintly there at
+   rest everywhere; brighter when you're actually on it. */
+.photo--flippable .photo__turn { opacity: .55; }
+
 .photo--flippable:hover .photo__turn,
 .photo__flip:focus-visible .photo__turn { opacity: 1; }
 
@@ -480,6 +498,7 @@ body:has(#page:target) .fold { display: none; }
   position: absolute;
   right: .9rem;
   bottom: .35rem;
+  letter-spacing: .04em;
 }
 
 /* A print in the shoebox is a fraction of the width of one in a chapter, so
@@ -490,10 +509,13 @@ body:has(#page:target) .fold { display: none; }
   .photo__turn { font-size: .5rem; letter-spacing: .1em; }
 }
 
-/* Nothing hovers on a touch screen, so the affordance has to be visible. */
+/* Nothing hovers on a touch screen, and there is no second state to reach. */
 @media (hover: none) {
   .photo--flippable .photo__turn { opacity: .7; }
 }
+
+/* a print is a control now — all of them, not just the ones with a back */
+.photo__flip { cursor: pointer; }
 
 .photo__img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
 
@@ -540,31 +562,37 @@ body:has(#page:target) .fold { display: none; }
 .shoebox { position: relative; }
 
 .shoebox__stage {
-  height: 100svh;                /* pinned — must not exceed the viewport */
   display: grid;
   align-content: center;
-  gap: clamp(1.5rem, 4vh, 3rem);
+  gap: clamp(1.75rem, 4vh, 3rem);
   padding-inline: var(--gutter);
-  padding-block: clamp(3rem, 8vh, 6rem);
-  overflow: hidden;
+  padding-block: var(--pad-section);
+  max-width: 72rem;
+  margin-inline: auto;
 }
 
 .shoebox__head { display: grid; gap: .6rem; text-align: center; justify-items: center; }
 .shoebox__heading { font-size: clamp(1.9rem, 4.4vw, 3rem); }
 .shoebox__note { color: var(--ink-soft); }
 
+/* Prints laid out on a table, not thrown at it. This used to be an absolute
+   pile that GSAP fanned across the screen at 900px and up: it overlapped, so a
+   print you turned over could end up under its neighbour, and it read as
+   scattered rather than arranged. The phone always had the calm version — this
+   is that, at every width, with the count following however many photographs
+   a letter actually has. */
 .shoebox__pile {
-  position: relative;
-  height: min(52vh, 28rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: clamp(1.5rem, 3.5vw, 2.75rem);
+  align-items: start;
+  justify-items: center;
 }
 
 .shoebox__pile .photo {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: clamp(8.5rem, 14vw, 13rem);
+  width: 100%;
   margin: 0;
-  rotate: 0deg;                 /* GSAP owns the angle in here */
+  rotate: var(--tilt, 0deg);    /* the fan is gone; the tilt shouldn't be */
 }
 
 .shoebox__pile .photo__cap { font-size: .92rem; }
@@ -937,33 +965,102 @@ body:has(#page:target) .fold { display: none; }
   .chapter__photos[data-count="2"],
   .chapter__photos[data-count="3"],
   .chapter__photos[data-count="4"] { grid-template-columns: 1fr; }
-  .chapter__photos .photo { margin-top: 0 !important; width: 100%; }
+  .chapter__photos .photo { width: 100%; }
   .chapter__photos[data-count="3"] .photo:nth-child(1) { width: 100%; }
-
-  /* the fan needs width to read — on a phone it's simply a pile in a grid */
-  .shoebox__pile {
-    position: static;
-    height: auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: clamp(1.25rem, 5vw, 2rem);
-  }
-  .shoebox__pile .photo {
-    position: static;
-    width: auto;
-    rotate: var(--tilt, 0deg);   /* the fan is gone; the tilt shouldn't be */
-  }
-
-  .shoebox__stage {
-    height: auto;
-    padding-block: var(--pad-section);
-    overflow: visible;
-  }
 
   .curl { display: none; }
   .chapter__note { transform: none; }
   .tab { top: auto; bottom: var(--gutter); }
 }
+
+/* ============================================================================
+   THE AIRMAIL EDGE
+   Fixed rather than part of the layout: .page has no box rules of its own, so
+   a border or a pseudo-element there would push every section inward and stop
+   their gutters starting at the viewport edge. This sits alongside .foxing and
+   .grain, which is where full-bleed texture already lives here.
+   ==========================================================================*/
+
+.airmail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 5px;
+  z-index: 40;                   /* between .foxing (1) and .grain (80) */
+  background: var(--airmail);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s var(--ease);
+}
+
+/* it arrives with the letter, not before the envelope is opened */
+.page.is-open ~ .airmail { opacity: .3; }
+
+@media (max-width: 560px) {
+  .airmail { width: 4px; }
+}
+
+/* ============================================================================
+   THE VIEWER — a print, held up to the light
+   The turn happens in here rather than on the page, where a shoebox print is
+   a couple of inches wide and sitting at an angle.
+   ==========================================================================*/
+
+.viewer {
+  border: 0;
+  padding: 0;
+  max-width: min(52rem, 92vw);
+  max-height: 92svh;
+  background: transparent;
+  overflow: visible;
+}
+
+.viewer::backdrop {
+  background: rgba(34, 28, 23, .82);
+}
+
+.viewer__inner {
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+/* the print in here is the page's print, just given room */
+.viewer__photo {
+  width: min(42rem, 100%);
+  rotate: 0deg;                  /* held straight, not laid on a table */
+}
+
+.viewer__photo .photo__img { aspect-ratio: auto; max-height: 62svh; object-fit: contain; }
+.viewer__photo .photo__back-text { font-size: clamp(1.15rem, 2.4vw, 1.6rem); max-width: 30ch; }
+.viewer__photo .photo__turn { display: none; }   /* the button below says it */
+
+.viewer__cap {
+  margin: 0;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  color: var(--paper);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.viewer__turn,
+.viewer__close {
+  font-size: .62rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  padding: .6rem 1.1rem;
+  border: 1px solid rgba(242, 234, 220, .3);
+  border-radius: 2px;
+  background: transparent;
+  color: rgba(242, 234, 220, .75);
+  cursor: pointer;
+  transition: border-color .25s var(--ease), color .25s var(--ease);
+}
+
+.viewer__turn:hover,
+.viewer__close:hover { border-color: var(--paper); color: var(--paper); }
+
+.viewer__close { justify-self: end; }
 
 /* ============================================================================
    BENGALI
@@ -997,7 +1094,7 @@ body:has(#page:target) .fold { display: none; }
 
 @media (max-width: 560px) {
   .shoebox__pile { grid-template-columns: 1fr; }
-  .shoebox__pile .photo { width: min(100%, 20rem); justify-self: center; }
+  .shoebox__pile .photo { width: min(100%, 20rem); }
   .letter__body { font-size: 1.3rem; line-height: 1.85; }
   .sheet { padding-inline: 1.35rem; }
 }
