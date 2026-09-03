@@ -1005,13 +1005,17 @@ body:has(#page:target) .fold { display: none; }
    a couple of inches wide and sitting at an angle.
    ==========================================================================*/
 
+/* A <dialog> is fit-content by default, so the box hugs the photograph and
+   everything either side of it is backdrop — which is also what makes
+   clicking beside the print close it. */
 .viewer {
   border: 0;
   padding: 0;
-  max-width: min(52rem, 92vw);
-  max-height: 92svh;
+  max-width: min(94vw, 88rem);
+  max-height: 96svh;
   background: transparent;
-  overflow: visible;
+  overflow: auto;                /* a very tall print on a short screen */
+  overscroll-behavior: contain;
 }
 
 .viewer::backdrop {
@@ -1019,19 +1023,42 @@ body:has(#page:target) .fold { display: none; }
 }
 
 .viewer__inner {
+  position: relative;
   display: grid;
   justify-items: center;
-  gap: 1.1rem;
-  padding: clamp(1rem, 3vw, 2rem);
+  gap: .85rem;
+  padding: clamp(.75rem, 2vw, 1.5rem);
 }
 
-/* the print in here is the page's print, just given room */
+/* The print sizes to the photograph rather than the photograph to the print,
+   so a portrait one isn't letterboxed inside a landscape mount. */
 .viewer__photo {
-  width: min(42rem, 100%);
+  width: auto;
+  max-width: 100%;
+  /* a tall narrow print would otherwise squeeze the writing on its back into
+     a column too thin to read */
+  min-width: min(22rem, 100%);
   rotate: 0deg;                  /* held straight, not laid on a table */
 }
 
-.viewer__photo .photo__img { aspect-ratio: auto; max-height: 62svh; object-fit: contain; }
+/* the mount grows with the print, so it still reads as a border and not a hairline */
+.viewer__photo .photo__face {
+  padding: clamp(.7rem, 1.1vw, 1.15rem);
+  padding-bottom: clamp(1.1rem, 1.8vw, 1.75rem);
+}
+
+.viewer__photo .photo__img {
+  aspect-ratio: auto;
+  width: auto;
+  max-width: 100%;
+  max-height: 72svh;
+  object-fit: contain;
+  display: block;
+  margin-inline: auto;
+}
+
+/* nothing to size to until the file is there */
+.viewer__photo.is-empty { width: min(100%, 40rem); }
 .viewer__photo .photo__back-text { font-size: clamp(1.15rem, 2.4vw, 1.6rem); max-width: 30ch; }
 .viewer__photo .photo__turn { display: none; }   /* the button below says it */
 
@@ -1060,7 +1087,13 @@ body:has(#page:target) .fold { display: none; }
 .viewer__turn:hover,
 .viewer__close:hover { border-color: var(--paper); color: var(--paper); }
 
-.viewer__close { justify-self: end; }
+.viewer__close {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  z-index: 1;
+  background: rgba(34, 28, 23, .55);
+}
 
 /* ============================================================================
    BENGALI
