@@ -35,4 +35,30 @@ ok(!passwordMatches(""), "an empty password does not match");
 delete process.env.ADMIN_PASSWORD;
 ok(!passwordMatches("anything"), "with no password configured nothing matches");
 
+/* the key when ADMIN_SECRET is not set: derived from the password instead */
+delete process.env.ADMIN_SECRET;
+
+process.env.ADMIN_PASSWORD = "correct horse battery staple";
+const derivedCookie = sign(now + 60_000);
+ok(verify(derivedCookie, undefined, now),
+   "with no ADMIN_SECRET, a cookie keyed on the password verifies");
+
+process.env.ADMIN_PASSWORD = "a different passphrase";
+ok(!verify(derivedCookie, undefined, now),
+   "changing the password invalidates cookies signed with the old one");
+
+delete process.env.ADMIN_PASSWORD;
+ok(!verify(derivedCookie, undefined, now),
+   "with neither password nor secret it fails closed");
+
+/* ADMIN_SECRET, when present, wins — so the password can change freely */
+process.env.ADMIN_SECRET = KEY;
+process.env.ADMIN_PASSWORD = "one password";
+const pinned = sign(now + 60_000);
+process.env.ADMIN_PASSWORD = "another password";
+ok(verify(pinned, undefined, now),
+   "with ADMIN_SECRET set, changing the password keeps everyone signed in");
+delete process.env.ADMIN_SECRET;
+delete process.env.ADMIN_PASSWORD;
+
 console.log(`\nadmin cookie: ${n} assertions passed`);

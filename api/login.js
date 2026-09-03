@@ -16,9 +16,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "method not allowed" });
   }
 
-  if (!process.env.ADMIN_PASSWORD || !process.env.ADMIN_SECRET) {
+  /* ADMIN_SECRET is optional — the cookie key falls back to ADMIN_PASSWORD. */
+  if (!process.env.ADMIN_PASSWORD) {
     return res.status(500).json({
-      error: "ADMIN_PASSWORD and ADMIN_SECRET are not set on this deployment",
+      error: "ADMIN_PASSWORD is not set on this deployment",
     });
   }
 

@@ -35,8 +35,8 @@ name on the envelope.
    `BLOB_PREFIX` to something unique on one of them.)
 
 3. **Set the environment variables** (see `.env.example`):
-   - `ADMIN_PASSWORD` — the password for `/admin`
-   - `ADMIN_SECRET` — any long random string; signs the admin cookie
+   - `ADMIN_PASSWORD` — the password for `/admin`. Make it a passphrase, not a
+     word; it also keys the admin cookie unless you set `ADMIN_SECRET`.
    - `BLOB_READ_WRITE_TOKEN` — appears on its own when you connect the store
 
 4. **Deploy.**
@@ -75,7 +75,6 @@ The dashboard route above is the easy one. From a terminal it is:
 npm i -g vercel
 vercel link                    # create or attach the project
 vercel env add ADMIN_PASSWORD production
-vercel env add ADMIN_SECRET production
 vercel --prod
 ```
 
@@ -100,13 +99,36 @@ request time; redeploy if in doubt.
 | Variable | Required | What it is |
 |---|---|---|
 | `ADMIN_PASSWORD` | **yes** | The password for `/admin`. Without it, login always fails. |
-| `ADMIN_SECRET` | **yes** | Any long random string; signs the admin cookie. Changing it signs everyone out. Generate: `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"` |
+| `ADMIN_SECRET` | no | Signs the admin cookie. Unset, the key is derived from `ADMIN_PASSWORD` — see below. Generate: `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"` |
 | `BLOB_READ_WRITE_TOKEN` | **yes** | Injected automatically when you connect a Blob store. Don't set it by hand. |
 | `BLOB_PREFIX` | no | Path prefix for this deployment's `content.json`. Only needed if two projects are stuck sharing one Blob store. Default: empty. |
 | `EMAILJS_SERVICE_ID` | no | EmailJS → Email Services. |
 | `EMAILJS_TEMPLATE_ID` | no | EmailJS → Email Templates; put `{{message}}` in the body. |
 | `EMAILJS_PUBLIC_KEY` | no | EmailJS → Account → API Keys. |
 | `EMAILJS_PRIVATE_KEY` | no | EmailJS private key. Needed unless you tick "Allow EmailJS API for non-browser applications". |
+
+### One secret or two
+
+The admin session is a signed cookie, not a database row, so something has to
+sign it. By default that key is derived from `ADMIN_PASSWORD` with scrypt, and
+a deployment needs **one** secret rather than two.
+
+Setting `ADMIN_SECRET` separates the two jobs. Which you want:
+
+| | Leave `ADMIN_SECRET` unset | Set `ADMIN_SECRET` |
+|---|---|---|
+| Variables to manage | one | two |
+| Changing the password | signs every device out | leaves everyone signed in |
+| If a cookie ever leaked | it could be brute-forced against your password — scrypt makes that slow, a passphrase makes it hopeless | reveals nothing about the password |
+
+Unset is the sensible default for a private letter. **Use a passphrase, not a
+single word** — several words is plenty. Set `ADMIN_SECRET` if you expect to
+rotate the password, or if the password is short and you'd rather it never key
+anything.
+
+Either way, `ADMIN_SECRET` is also your "sign out everywhere" button: change
+it, or change the password when it isn't set, and every existing cookie stops
+verifying.
 
 The four `EMAILJS_*` variables go together: set all of them, or none. With any
 missing, `/api/reply` reports itself unconfigured and the reply box quietly

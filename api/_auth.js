@@ -11,7 +11,31 @@ import crypto from "node:crypto";
 export const COOKIE = "ith_admin";
 export const MAX_AGE = 60 * 60 * 24 * 30;        /* thirty days, in seconds */
 
-const secret = () => process.env.ADMIN_SECRET || "";
+/* The key the cookie is signed with.
+
+   ADMIN_SECRET is optional. Without it the key is derived from ADMIN_PASSWORD,
+   so a deployment needs exactly one secret instead of two. Two consequences
+   worth knowing: changing the password signs everyone out, and the cookie
+   becomes something a password could be brute-forced against if it ever
+   leaked — which is why the derivation is scrypt and not a plain hash, and
+   why a passphrase beats a word. Set ADMIN_SECRET to opt out of both. */
+let derived = null;
+
+const secret = () => {
+  if (process.env.ADMIN_SECRET) return process.env.ADMIN_SECRET;
+
+  const password = process.env.ADMIN_PASSWORD || "";
+  if (!password) return "";                      /* nothing to derive from */
+
+  /* scrypt costs ~100ms, so cache it for the life of the instance */
+  if (!derived || derived.password !== password) {
+    derived = {
+      password,
+      key: crypto.scryptSync(password, "in-two-hands/admin-cookie", 32),
+    };
+  }
+  return derived.key;
+};
 
 /** `<expiresAtMs>.<hmac>` */
 export function sign(expiresAt, key = secret()) {
