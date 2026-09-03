@@ -78,49 +78,72 @@ button, input, textarea { font: inherit; color: inherit; }
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: clamp(1rem, 5vw, 2.5rem);
 }
 
+/* The way in is an envelope, so the airmail edge runs the whole way round it.
+   On the sheets inside it only marks the left edge — that difference is the
+   point: you open the envelope, then you write on the paper. */
 .gate__form {
   position: relative;
-  width: min(25rem, 100%);
+  width: min(27rem, 100%);
   display: grid;
-  gap: 1rem;
-  padding: 3rem 2.25rem 2.5rem 2.75rem;
+  gap: 1.1rem;
+  padding: clamp(2.25rem, 7vw, 3rem) clamp(1.75rem, 6vw, 2.5rem);
   background: linear-gradient(168deg, var(--paper-lift), var(--paper-shade));
-  border-radius: 2px;
+  background-clip: padding-box;
+  border: 9px solid transparent;
+  border-image: var(--airmail) 9 round;
   box-shadow: var(--lift);
   animation: sheet-in .6s var(--ease) backwards;
 }
 
-/* the airmail edge */
+/* the flap: a faint crease down from the top corners, as on a real one */
 .gate__form::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 8px;
-  background: var(--airmail);
-  border-radius: 2px 0 0 2px;
+  inset: 0 0 auto 0;
+  height: 6.5rem;
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - .5px), var(--paper-shade) 50%,
+                    transparent calc(50% + .5px)) left / 50% 100% no-repeat,
+    linear-gradient(to bottom left,  transparent calc(50% - .5px), var(--paper-shade) 50%,
+                    transparent calc(50% + .5px)) right / 50% 100% no-repeat;
+  opacity: .8;
+  pointer-events: none;
 }
 
 .gate__title {
+  position: relative;
   font-family: var(--hand);
-  font-size: clamp(2.4rem, 8vw, 3rem);
+  font-size: clamp(2.5rem, 9vw, 3.1rem);
   font-weight: 600;
   line-height: 1;
   margin: 0;
+  text-wrap: balance;
 }
 
 .gate__note {
   font-family: var(--type);
-  font-size: .64rem;
-  letter-spacing: .22em;
+  font-size: .62rem;
+  letter-spacing: .24em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin: -.4rem 0 1rem;
+  margin: -.5rem 0 .6rem;
 }
 
-.gate__form .btn--primary { width: 100%; padding: .8rem 1rem; }
+/* a postmark rule, the same one the sheets carry under their titles */
+.gate__note::after {
+  content: "";
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  margin-top: .9rem;
+  background: var(--post);
+}
+
+.gate__form .field__input { padding: .8rem .85rem; }
+.gate__form .btn--primary { width: 100%; padding: .9rem 1rem; margin-top: .2rem; }
 
 .gate__error {
   font-family: var(--type);
