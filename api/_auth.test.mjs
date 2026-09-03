@@ -30,8 +30,16 @@ ok(!verify(`${now + 999_999_999}.${mac}`, KEY, now), "extending the expiry inval
 process.env.ADMIN_PASSWORD = "correct horse";
 ok(passwordMatches("correct horse"), "the right password matches");
 ok(!passwordMatches("correct hors"), "a shorter password does not match");
-ok(!passwordMatches("correct horse "), "a longer password does not match");
+ok(!passwordMatches("correct horsey"), "a longer password does not match");
+ok(!passwordMatches("correct  horse"), "an inner space still matters");
 ok(!passwordMatches(""), "an empty password does not match");
+
+/* surrounding whitespace is not part of a password, on either side — a value
+   pasted into a dashboard or piped to `vercel env add` carries a newline */
+ok(passwordMatches("  correct horse\n"), "whitespace around what is typed is ignored");
+process.env.ADMIN_PASSWORD = "correct horse\n";
+ok(passwordMatches("correct horse"), "a newline on the stored value is ignored");
+process.env.ADMIN_PASSWORD = "correct horse";
 delete process.env.ADMIN_PASSWORD;
 ok(!passwordMatches("anything"), "with no password configured nothing matches");
 

@@ -11,6 +11,12 @@ import crypto from "node:crypto";
 export const COOKIE = "ith_admin";
 export const MAX_AGE = 60 * 60 * 24 * 30;        /* thirty days, in seconds */
 
+/* Env values arrive with whatever whitespace the dashboard or the shell left
+   on them — a trailing newline from `vercel env add` is the usual one — and an
+   exact comparison against an untrimmed value locks you out with no way to see
+   why. Surrounding whitespace is not a meaningful part of a password. */
+const adminPassword = () => (process.env.ADMIN_PASSWORD || "").trim();
+
 /* The key the cookie is signed with.
 
    ADMIN_SECRET is optional. Without it the key is derived from ADMIN_PASSWORD,
@@ -24,7 +30,7 @@ let derived = null;
 const secret = () => {
   if (process.env.ADMIN_SECRET) return process.env.ADMIN_SECRET;
 
-  const password = process.env.ADMIN_PASSWORD || "";
+  const password = adminPassword();
   if (!password) return "";                      /* nothing to derive from */
 
   /* scrypt costs ~100ms, so cache it for the life of the instance */
@@ -95,10 +101,10 @@ export function isAdmin(req) {
 
 /** Constant-time password check that doesn't leak the length by throwing. */
 export function passwordMatches(given) {
-  const want = process.env.ADMIN_PASSWORD || "";
+  const want = adminPassword();
   if (!want) return false;
 
-  const a = Buffer.from(String(given ?? ""));
+  const a = Buffer.from(String(given ?? "").trim());
   const b = Buffer.from(want);
   const len = Math.max(a.length, b.length, 1);
 
