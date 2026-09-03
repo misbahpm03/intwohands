@@ -67,6 +67,59 @@ name on the envelope.
 
 ---
 
+## Deploying with the Vercel CLI
+
+The dashboard route above is the easy one. From a terminal it is:
+
+```bash
+npm i -g vercel
+vercel link                    # create or attach the project
+vercel env add ADMIN_PASSWORD production
+vercel env add ADMIN_SECRET production
+vercel --prod
+```
+
+Nothing is built. Vercel serves `index.html`, `styles.css`, `app.js` and
+`content.js` straight from the repo root, and turns each file in `api/` into a
+serverless function. Files starting with `_` (`api/_auth.js`,
+`api/_auth.test.mjs`) are helpers, not routes — Vercel skips them. The only
+settings that matter are already in `vercel.json`, and there is no build
+command, output directory or framework preset to choose: leave them empty.
+
+Requires Node 20 or newer (`engines` in `package.json`).
+
+---
+
+## Environment variables
+
+Set these per project, in **Settings → Environment Variables**, or with
+`vercel env add`. All of them are read on the server only — none reach the
+browser. Changing one takes effect on the next request for values read at
+request time; redeploy if in doubt.
+
+| Variable | Required | What it is |
+|---|---|---|
+| `ADMIN_PASSWORD` | **yes** | The password for `/admin`. Without it, login always fails. |
+| `ADMIN_SECRET` | **yes** | Any long random string; signs the admin cookie. Changing it signs everyone out. Generate: `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"` |
+| `BLOB_READ_WRITE_TOKEN` | **yes** | Injected automatically when you connect a Blob store. Don't set it by hand. |
+| `BLOB_PREFIX` | no | Path prefix for this deployment's `content.json`. Only needed if two projects are stuck sharing one Blob store. Default: empty. |
+| `EMAILJS_SERVICE_ID` | no | EmailJS → Email Services. |
+| `EMAILJS_TEMPLATE_ID` | no | EmailJS → Email Templates; put `{{message}}` in the body. |
+| `EMAILJS_PUBLIC_KEY` | no | EmailJS → Account → API Keys. |
+| `EMAILJS_PRIVATE_KEY` | no | EmailJS private key. Needed unless you tick "Allow EmailJS API for non-browser applications". |
+
+The four `EMAILJS_*` variables go together: set all of them, or none. With any
+missing, `/api/reply` reports itself unconfigured and the reply box quietly
+offers copy-to-clipboard instead.
+
+`VERCEL` is set by the platform itself — it's what makes the admin cookie
+`Secure` in production but not under `vercel dev` over plain http.
+
+Preview and development environments inherit production values unless you
+scope them, which means **a preview branch reads and writes the real story**.
+
+---
+
 ## Where things live
 
 | What | Where |
@@ -124,8 +177,6 @@ assertions — the day counter, the anniversary rollover, the send-button rules.
 - **The letter fails open.** If `/api/content` is unreachable the page renders
   from the template rather than showing nothing, and the envelope can always be
   opened even with JavaScript broken.
-- **Preview deployments share the project's production environment
-  variables**, so a preview branch reads and writes that project's real story.
 - **Bengali is supported** but there is no Bengali handwriting font in
   existence on Google Fonts — Bengali text falls through to calligraphic
   display faces (Galada, Alkatra). English keeps Caveat and Cedarville.
