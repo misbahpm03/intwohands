@@ -1013,6 +1013,7 @@ body:has(#page:target) .fold { display: none; }
   padding: 0;
   max-width: min(96vw, 96rem);
   max-height: 98svh;
+  min-width: 0;
   background: transparent;
   overflow: auto;                /* a very tall print on a short screen */
   overscroll-behavior: contain;
@@ -1031,13 +1032,18 @@ body:has(#page:target) .fold { display: none; }
 }
 
 /* The print sizes to the photograph rather than the photograph to the print,
-   so a portrait one isn't letterboxed inside a landscape mount. */
+   so a portrait one isn't letterboxed inside a landscape mount.
+
+   container-type MUST be cleared here. .photo sets `container-type:
+   inline-size` so a shoebox print can size the writing on its back against
+   the card — but that is inline-size CONTAINMENT: the width is computed
+   without looking at the contents. On a centred grid item with width:auto
+   that collapses to min-width instead of growing to the photograph, which is
+   what made this viewer smaller the larger the numbers around it got. */
 .viewer__photo {
+  container-type: normal;
   width: auto;
-  max-width: 100%;
-  /* a tall narrow print would otherwise squeeze the writing on its back into
-     a column too thin to read */
-  min-width: min(22rem, 100%);
+  min-width: min(20rem, 86vw);   /* a floor for the writing on the back */
   rotate: 0deg;                  /* held straight, not laid on a table */
 }
 
@@ -1050,15 +1056,18 @@ body:has(#page:target) .fold { display: none; }
 .viewer__photo .photo__img {
   aspect-ratio: auto;
   width: auto;
-  max-width: 100%;
-  max-height: 80svh;
+  height: auto;
+  /* against the viewport, not a percentage: every box between here and the
+     dialog is fit-content, so a percentage would have nothing definite to
+     resolve against */
+  max-width: min(86vw, 88rem);
+  max-height: 82svh;
   object-fit: contain;
   display: block;
-  margin-inline: auto;
 }
 
 /* nothing to size to until the file is there */
-.viewer__photo.is-empty { width: min(100%, 40rem); }
+.viewer__photo.is-empty { width: min(88vw, 40rem); }
 .viewer__photo .photo__back-text { font-size: clamp(1.15rem, 2.4vw, 1.6rem); max-width: 30ch; }
 .viewer__photo .photo__turn { display: none; }   /* the button below says it */
 
