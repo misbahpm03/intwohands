@@ -993,7 +993,7 @@ body:has(#page:target) .fold { display: none; }
 }
 
 /* it arrives with the letter, not before the envelope is opened */
-.page.is-open ~ .airmail { opacity: .3; }
+.page.is-open ~ .airmail { opacity: .5; }
 
 @media (max-width: 560px) {
   .airmail { width: 4px; }
@@ -1011,8 +1011,8 @@ body:has(#page:target) .fold { display: none; }
 .viewer {
   border: 0;
   padding: 0;
-  max-width: min(94vw, 88rem);
-  max-height: 96svh;
+  max-width: min(96vw, 96rem);
+  max-height: 98svh;
   background: transparent;
   overflow: auto;                /* a very tall print on a short screen */
   overscroll-behavior: contain;
@@ -1026,8 +1026,8 @@ body:has(#page:target) .fold { display: none; }
   position: relative;
   display: grid;
   justify-items: center;
-  gap: .85rem;
-  padding: clamp(.75rem, 2vw, 1.5rem);
+  gap: .7rem;
+  padding: clamp(.5rem, 1.5vw, 1rem);
 }
 
 /* The print sizes to the photograph rather than the photograph to the print,
@@ -1051,7 +1051,7 @@ body:has(#page:target) .fold { display: none; }
   aspect-ratio: auto;
   width: auto;
   max-width: 100%;
-  max-height: 72svh;
+  max-height: 80svh;
   object-fit: contain;
   display: block;
   margin-inline: auto;
