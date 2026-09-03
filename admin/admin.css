@@ -342,6 +342,8 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .field { display: grid; gap: .4rem; }
 
+h3.field__label { margin: 0; font-weight: inherit; }
+
 .field__label {
   font-family: var(--type);
   font-size: .62rem;
@@ -380,6 +382,19 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 
 .group { display: grid; gap: 1rem; }
+
+/* the file picker and its URL box, as one field */
+.filefield { gap: .5rem; }
+
+/* visible to a screen reader, not on screen */
+.u-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
 
 /* --- repeatable items ----------------------------------------------------*/
 

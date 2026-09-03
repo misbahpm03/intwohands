@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       body,
       onBeforeGenerateToken: async () => {
         /* the only thing standing between this and an open uploader */
-        if (!isAdmin(req)) throw new Error("not signed in");
+        if (!isAdmin(req)) throw Object.assign(new Error("not signed in"), { status: 401 });
         return {
           allowedContentTypes: ALLOWED,
           maximumSizeInBytes: 25 * 1024 * 1024,
@@ -47,6 +47,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json(result);
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    /* 401 so the editor can say "sign in again" instead of "upload failed",
+       matching how save() already treats an expired session */
+    return res.status(err.status || 400).json({ error: err.message });
   }
 }

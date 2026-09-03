@@ -30,12 +30,12 @@
 <div class="app" id="app" hidden>
   <header class="bar">
     <span class="bar__title">the letter</span>
-    <span class="bar__status" id="status"></span>
-    <a class="btn" href="/" target="_blank" rel="noopener">preview</a>
+    <span class="bar__status" id="status" role="status"></span>
+    <a class="btn" href="/" target="_blank" rel="noopener">preview<span class="u-sr">, opens in a new tab</span></a>
     <button class="btn" id="signOut" type="button">sign out</button>
     <button class="btn btn--primary" id="save" type="button">save</button>
   </header>
-  <main class="sheet" id="editor"></main>
+  <main class="sheet" id="editor" tabindex="-1"></main>
 </div>
 
 <!-- the starting content, and the fallback if nothing is saved yet -->

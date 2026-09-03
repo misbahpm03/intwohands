@@ -6,9 +6,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node api/_auth.test.mjs && node api/_paths.test.mjs"
+    "test": "node api/_auth.test.mjs && node api/_paths.test.mjs && node api/_content.test.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.0"
+    "@vercel/blob": "2.8.0"
   }
 }

@@ -8,6 +8,13 @@
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
+/* Kept in step with ALLOWED in api/upload.js. "image/*" and "audio/*" let the
+   picker offer files the server then rejects, which reads as a broken upload.
+   HEIC is deliberately absent: the server accepts it but no browser can draw
+   it in an <img>, so it uploads fine and then shows "nothing yet". */
+const IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+const AUDIO_TYPES = "audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,audio/flac";
+
 const el = (tag, cls, text) => {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -17,6 +24,7 @@ const el = (tag, cls, text) => {
 
 let draft = null;
 let dirty = false;
+let readOnly = false;      /* the saved letter couldn't be read — never save over it */
 
 /* --- chrome --------------------------------------------------------------*/
 
@@ -43,18 +51,22 @@ window.addEventListener("beforeunload", (e) => {
 /* --- field builders ------------------------------------------------------*/
 
 function field(label, obj, key, opts = {}) {
-  const { multiline = 0, placeholder = "", hint = "" } = opts;
+  const { multiline = 0, placeholder = "", hint = "", type = "text" } = opts;
 
   const wrap = el("label", "field");
   wrap.append(el("span", "field__label", label));
 
   const input = multiline ? el("textarea", "field__input") : el("input", "field__input");
   if (multiline) input.rows = multiline === true ? 3 : multiline;
-  else input.type = "text";
+  else input.type = type;
 
   input.value = obj[key] ?? "";
   input.placeholder = placeholder;
-  input.addEventListener("input", () => { obj[key] = input.value; markDirty(); });
+  input.addEventListener("input", () => {
+    /* trimmed, so a stray space can't fail a server-side format check */
+    obj[key] = type === "text" && !multiline ? input.value.trim() : input.value;
+    markDirty();
+  });
 
   wrap.append(input);
   if (hint) wrap.append(el("span", "field__hint", hint));
@@ -110,8 +122,11 @@ async function uploadFile(file) {
   return result.url;
 }
 
-function fileField(label, obj, key, accept = "image/*") {
-  const wrap = el("div", "field filefield");
+function fileField(label, obj, key, accept = IMAGE_TYPES) {
+  /* A <label> wrapping the controls, like field() and listField() do. As a div
+     with a bare span the picker and the URL box had no accessible name at all,
+     and there are around thirty of them across the photo lists. */
+  const wrap = el("label", "field filefield");
   wrap.append(el("span", "field__label", label));
 
   /* An <img> preview would always fail for a song and report "nothing yet"
@@ -143,6 +158,7 @@ function fileField(label, obj, key, accept = "image/*") {
   const url = el("input", "field__input");
   url.type = "text";
   url.placeholder = "images/01.jpg, or a URL";
+  url.setAttribute("aria-label", `${label} — address`);
 
   const paint = () => {
     const src = obj[key] || "";
@@ -164,7 +180,9 @@ function fileField(label, obj, key, accept = "image/*") {
       status("uploaded — remember to save");
     } catch (err) {
       console.error(err);
-      status("upload failed: " + err.message + " — you can paste a URL instead", true);
+      status(/not signed in/i.test(err.message)
+        ? "signed out — reload and sign in again"
+        : "upload failed: " + err.message + " — you can paste a URL instead", true);
     } finally {
       picker.value = "";
     }
@@ -194,12 +212,20 @@ function repeater(list, { addLabel, render, blank, itemLabel }) {
   };
 
   const draw = () => {
+    /* ponytail: rebuilds the whole list, so reordering loses focus and any
+       text selection in it. Moving nodes instead means the render closures
+       stop capturing a stale index — worth it only if reordering gets used
+       enough to be annoying. */
     items.replaceChildren();
 
     list.forEach((item, i) => {
       const card = el("div", "repeat__item");
       const head = el("div", "repeat__head");
-      head.append(el("span", "repeat__n", itemLabel(item, i)));
+      const heading = el("span", "repeat__n", itemLabel(item, i));
+      head.append(heading);
+
+      /* one listener for the whole card, rather than a hook on every builder */
+      card.addEventListener("input", () => { heading.textContent = itemLabel(item, i); });
 
       const tools = el("div", "repeat__tools");
       tools.append(
@@ -279,7 +305,9 @@ function buildEditor() {
     field("your name", draft.names, "one"),
     field("their name", draft.names, "two"),
     field("the date it started", draft, "startDate", {
-      placeholder: "YYYY-MM-DD",
+      /* a native date picker only ever produces YYYY-MM-DD, so the server's
+         format check stops being something anyone can fail */
+      type: "date",
       hint: "drives the day count and the anniversary countdown",
     }),
     field("what you call that day", draft, "startLabel"),
@@ -310,7 +338,7 @@ function buildEditor() {
         field("title", ch, "title"),
         listField("the prose", ch, "body", { rows: 6 }),
         field("their note in the margin", ch, "note"),
-        el("span", "field__label", "photographs"),
+        el("h3", "field__label", "photographs"),
         photos(ch.photos),
       ]),
     }),
@@ -345,7 +373,7 @@ function buildEditor() {
   ]));
 
   root.append(section("music", [
-    fileField("the audio file", draft.music, "src", "audio/*"),
+    fileField("the audio file", draft.music, "src", AUDIO_TYPES),
     field("what to call it", draft.music, "title"),
   ]));
 }
@@ -371,22 +399,54 @@ function withDefaults(data) {
   out.chapters = Array.isArray(out.chapters) ? out.chapters : [];
   out.shoebox.photos = Array.isArray(out.shoebox.photos) ? out.shoebox.photos : [];
   out.chapters.forEach((ch) => { if (!Array.isArray(ch.photos)) ch.photos = []; });
+
+  /* listField calls .join() on these three, so anything that isn't an array
+     throws while the editor is being built — see start(). */
+  if (!Array.isArray(out.letter.paragraphs)) out.letter.paragraphs = [];
+  if (!Array.isArray(out.envelope.lines)) out.envelope.lines = [];
+  out.chapters.forEach((ch) => { if (!Array.isArray(ch.body)) ch.body = []; });
   return out;
 }
 
+/* The editor must never present the starter template as if it were the saved
+   letter. If it does, the obvious move — edit a field, press save — writes the
+   template over a real story, and there is no version history to get it back.
+   So this returns WHY it is showing what it is showing, and save() refuses
+   when the answer is "I couldn't read it". */
 async function loadDraft() {
+  let res;
   try {
-    const res = await fetch("/api/content", { cache: "no-store" });
-    if (res.ok && res.status !== 204) {
-      return withDefaults(await res.json());
-    }
+    res = await fetch("/api/content", { cache: "no-store" });
   } catch (err) {
-    console.warn("could not load the saved story:", err.message);
+    console.error("could not reach /api/content:", err.message);
+    return { draft: null, source: "unavailable" };
   }
-  return withDefaults(structuredClone(window.CONTENT_SEED || {}));
+
+  if (res.status === 204) {
+    return { draft: withDefaults(structuredClone(window.CONTENT_SEED || {})), source: "seed" };
+  }
+
+  if (res.ok) {
+    try {
+      return { draft: withDefaults(await res.json()), source: "saved" };
+    } catch (err) {
+      console.error("the saved letter isn't readable JSON:", err.message);
+      return { draft: null, source: "unavailable" };
+    }
+  }
+
+  console.error("/api/content answered", res.status);
+  return { draft: null, source: "unavailable" };
 }
 
 async function save() {
+  if (readOnly) {
+    status("not saving — the letter here couldn't be read, so this would overwrite it", true);
+    return;
+  }
+
+  const btn = $("#save");
+  btn.disabled = true;                    /* two clicks were two concurrent PUTs */
   status("saving…");
   try {
     const res = await fetch("/api/content", {
@@ -403,6 +463,8 @@ async function save() {
     status("saved");
   } catch (err) {
     status("could not save: " + err.message, true);
+  } finally {
+    btn.disabled = readOnly;
   }
 }
 
@@ -419,18 +481,44 @@ async function alreadyIn() {
 }
 
 async function start() {
+  /* Build BEFORE swapping visibility. The other order hides the gate first,
+     so anything thrown in here lands in #gateError inside a display:none
+     element — a blank editor and no visible reason for it. */
+  const { draft: loaded, source } = await loadDraft();
+
+  readOnly = source === "unavailable";
+  draft = loaded || withDefaults(structuredClone(window.CONTENT_SEED || {}));
+  buildEditor();
+
   $("#gate").hidden = true;
   $("#app").hidden = false;
+  $("#editor").focus();                   /* focus was falling to <body> */
 
-  draft = await loadDraft();
-  buildEditor();
   dirty = false;
-  status("ready");
+  $("#save").disabled = readOnly;
+
+  if (readOnly) {
+    status("couldn't read the saved letter — showing the template, saving is off", true);
+  } else if (source === "seed") {
+    status("the starter template — nothing saved yet");
+  } else {
+    status("your letter");
+  }
 
   $("#save").addEventListener("click", save);
 
   $("#signOut").addEventListener("click", async () => {
-    await fetch("/api/login", { method: "DELETE" });
+    /* This used to set dirty = false and reload, which deliberately disarmed
+       the beforeunload guard — one mis-click threw away an evening's edits. */
+    if (dirty && !confirm("You have unsaved changes. Sign out and lose them?")) return;
+
+    try {
+      await fetch("/api/login", { method: "DELETE" });
+    } catch (err) {
+      /* the cookie is still valid; saying so beats a button that does nothing */
+      status("couldn't sign out: " + err.message, true);
+      return;
+    }
     dirty = false;
     location.reload();
   });
@@ -459,4 +547,13 @@ $("#gateForm").addEventListener("submit", async (e) => {
   }
 });
 
-alreadyIn().then((yes) => { if (yes) start(); });
+/* The gate is what's on screen until this resolves, so a failure in start()
+   has to land there — otherwise it's an unhandled rejection and a password
+   form that silently refuses to go away. */
+alreadyIn().then((yes) => {
+  if (!yes) return;
+  return start().catch((err) => {
+    console.error(err);
+    $("#gateError").textContent = "couldn't open the editor: " + err.message;
+  });
+});
